@@ -123,87 +123,105 @@ var employee_tracker = function () {
                 })
             });
         } else if (answers.prompt === 'Add Employee') {
-            // Calling the database to acquire the roles and managers
-            db.query(`SELECT * FROM employee, role`, (err, result) => {
-                if (err) throw err;
-
-                inquirer.prompt([
-                    {
-                        // Adding Employee First Name
-                        type: 'input',
-                        name: 'firstName',
-                        message: 'What is the employees first name?',
-                        validate: firstNameInput => {
-                            if (firstNameInput) {
-                                return true;
-                            } else {
-                                console.log('Please Add A First Name!');
-                                return false;
-                            }
-                        }
-                    },
-                    {
-                        // Adding Employee Last Name
-                        type: 'input',
-                        name: 'lastName',
-                        message: 'What is the employees last name?',
-                        validate: lastNameInput => {
-                            if (lastNameInput) {
-                                return true;
-                            } else {
-                                console.log('Please Add A Salary!');
-                                return false;
-                            }
-                        }
-                    },
-                    {
-                        // Adding Employee Role
-                        type: 'list',
-                        name: 'role',
-                        message: 'What is the employees role?',
-                        choices: () => {
-                            var array = [];
-                            for (var i = 0; i < result.length; i++) {
-                                array.push(result[i].title);
-                            }
-                            var newArray = [...new Set(array)];
-                            return newArray;
-                        }
-                    },
-                    {
-                        // Adding Employee Manager
-                        type: 'input',
-                        name: 'manager',
-                        message: 'Who is the employees manager?',
-                        validate: managerInput => {
-                            if (managerInput) {
-                                return true;
-                            } else {
-                                console.log('Please Add A Manager!');
-                                return false;
-                            }
+            inquirer.prompt([
+                {
+                    // Adding Employee First Name
+                    type: 'input',
+                    name: 'firstName',
+                    message: 'What is the employees first name?',
+                    validate: firstNameInput => {
+                        if (firstNameInput) {
+                            return true;
+                        } else {
+                            console.log('Please Add A First Name!');
+                            return false;
                         }
                     }
-                ]).then((answers) => {
-                    // Comparing the result and storing it into the variable
-                    for (var i = 0; i < result.length; i++) {
-                        if (result[i].title === answers.role) {
-                            var role = result[i];
+                },
+                {
+                    // Adding Employee Last Name
+                    type: 'input',
+                    name: 'lastName',
+                    message: 'What is the employees last name?',
+                    validate: lastNameInput => {
+                        if (lastNameInput) {
+                            return true;
+                        } else {
+                            console.log('Please Add A Salary!');
+                            return false;
                         }
                     }
-
-                    db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`, [answers.firstName, answers.lastName, role.id, answers.manager.id], (err, result) => {
-                        if (err) throw err;
-                        console.log(`Added ${answers.firstName} ${answers.lastName} to the database.`)
-                        employee_tracker();
+                }
+            ]).then((answers) => {
+                var params = [answers.firstName, answers.lastName];
+                // Calling the database to acquire the roles
+                db.query(`SELECT * FROM role`, (err, result) => {
+                    if (err) throw err;
+                    inquirer.prompt([
+                        {
+                            // Adding Employee Role
+                            type: 'list',
+                            name: 'role',
+                            message: 'What is the employees role?',
+                            choices: () => {
+                                var array = [];
+                                for (var i = 0; i < result.length; i++) {
+                                    array.push(result[i].title);
+                                }
+                                var newArray = [...new Set(array)];
+                                return newArray;
+                            }
+                        }
+                    ]).then((answers) => {
+                        // Comparing the result and storing it into the variable
+                        for (var i = 0; i < result.length; i++) {
+                            if (result[i].title === answers.role) {
+                                var roleId = result[i].id;
+                            }
+                        }
+                        params.push(roleId);
+                        // grab roles from roles table
+                        db.query(`SELECT * FROM employee`, (err, result) => {
+                            if (err) throw err;
+                            inquirer.prompt([
+                                {
+                                    // Adding Employee Manager
+                                    type: 'list',
+                                    name: 'employee',
+                                    message: 'Who is the employees manager?',
+                                    choices: () => {
+                                        var array = [];
+                                        for (var i = 0; i < result.length; i++) {
+                                            var managerName = result[i].first_name + " " + result[i].last_name;
+                                            array.push(managerName);
+                                        }
+                                        var newArray = [...new Set(array)];
+                                        return newArray;
+                                    }
+                                }
+                            ]).then((answers) => {
+                                // Comparing the result and storing it into the variable
+                                for (var i = 0; i < result.length; i++) {
+                                    if ((result[i].first_name + " " + result[i].last_name) === answers.employee) {
+                                        var managerId = result[i].id;
+                                    }
+                                }
+                                params.push(managerId);
+                                db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`, params, (err, result) => {
+                                    if (err) throw err;
+                                    console.log(`Added ${params[0]} ${params[1]} to the database.`)
+                                    employee_tracker();
+                                });
+                            });
+                        });
                     });
-                })
+                });
             });
         } else if (answers.prompt === 'Update Employee Role') {
             // Calling the database to acquire the roles and managers
-            db.query(`SELECT * FROM employee, role`, (err, result) => {
+            db.query(`SELECT * FROM employee`, (err, result) => {
                 if (err) throw err;
-
+                console.log(result)
                 inquirer.prompt([
                     {
                         // Choose an Employee to Update
@@ -213,46 +231,58 @@ var employee_tracker = function () {
                         choices: () => {
                             var array = [];
                             for (var i = 0; i < result.length; i++) {
-                                array.push(result[i].last_name);
+                                var employeeName = result[i].first_name + " " + result[i].last_name;
+                                array.push(employeeName);
                             }
                             var employeeArray = [...new Set(array)];
                             return employeeArray;
                         }
-                    },
-                    {
-                        // Updating the New Role
-                        type: 'list',
-                        name: 'role',
-                        message: 'What is their new role?',
-                        choices: () => {
-                            var array = [];
-                            for (var i = 0; i < result.length; i++) {
-                                array.push(result[i].title);
-                            }
-                            var newArray = [...new Set(array)];
-                            return newArray;
-                        }
                     }
                 ]).then((answers) => {
-                    // Comparing the result and storing it into the variable
+                    var params = [];
                     for (var i = 0; i < result.length; i++) {
-                        if (result[i].last_name === answers.employee) {
-                            var name = result[i];
+                        if ((result[i].first_name + " " + result[i].last_name) === answers.employee) {
+                            var employeeId = result[i].id;
                         }
                     }
+                    params.push(employeeId, answers.employee);
 
-                    for (var i = 0; i < result.length; i++) {
-                        if (result[i].title === answers.role) {
-                            var role = result[i];
-                        }
-                    }
 
-                    db.query(`UPDATE employee SET ? WHERE ?`, [{role_id: role}, {last_name: name}], (err, result) => {
+                    db.query(`SELECT * FROM role`, (err, result) => {
                         if (err) throw err;
-                        console.log(`Updated ${answers.employee} role to the database.`)
-                        employee_tracker();
+                        inquirer.prompt([
+                            {
+                                // Adding Employee Role
+                                type: 'list',
+                                name: 'role',
+                                message: 'What is their new role?',
+                                choices: () => {
+                                    var array = [];
+                                    for (var i = 0; i < result.length; i++) {
+                                        array.push(result[i].title);
+                                    }
+                                    var newArray = [...new Set(array)];
+                                    return newArray;
+                                }
+                            }
+                        ]).then((answers) => {
+                            // Comparing the result and storing it into the variable
+                            for (var i = 0; i < result.length; i++) {
+                                if (result[i].title === answers.role) {
+                                    var roleId = result[i].id;
+                                }
+                            }
+                            params.push(roleId);
+
+
+                            db.query(`UPDATE employee SET ? WHERE ?`, [{ role_id: params[2] }, {id: params[0]}], (err, result) => {
+                                if (err) throw err;
+                                console.log(`Updated ${params[1]} role to the database.`)
+                                employee_tracker();
+                            });
+                        })
                     });
-                })
+                });
             });
         } else if (answers.prompt === 'Log Out') {
             db.end();
@@ -260,4 +290,3 @@ var employee_tracker = function () {
         }
     })
 };
-

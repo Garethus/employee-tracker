@@ -17,7 +17,7 @@ This is a command-line application that manage a company's employee database, us
 
 ## Walkthrough-Video
 
-Watch this [video](https://drive.google.com/) demonstration to learn the functionality and how to use the application.
+Watch this [video](https://drive.google.com/file/d/1E5NFQebWN6SQjaAlg1BLsBqsiyTUI-Bs/view) demonstration to learn the functionality and how to use the application.
 
 ## Installation 
 

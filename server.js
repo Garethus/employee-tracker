@@ -221,7 +221,6 @@ var employee_tracker = function () {
             // Calling the database to acquire the roles and managers
             db.query(`SELECT * FROM employee`, (err, result) => {
                 if (err) throw err;
-                console.log(result)
                 inquirer.prompt([
                     {
                         // Choose an Employee to Update
